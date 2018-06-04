@@ -1,7 +1,7 @@
 __precompile__()
 
 module SnoopCompile
-
+using Nullables
 export
     @snoop,
     @snoop1
@@ -100,8 +100,8 @@ function read(filename)
             continue
         end
         tm = tryparse(UInt64, time)
-        isnull(tm) && continue
-        push!(times, get(tm))
+        tm == nothing && continue
+        push!(times, tm)
         push!(data, str[2:prevind(str, endof(str))])
     end
     # Save the most costly for last
@@ -119,6 +119,8 @@ function extract_topmod(e)
         return extract_topmod(e.args[2])
     #Meta.isexpr(e, :call) && length(e.args) == 2 && e.args[1] == :Symbol &&
     #    return Symbol(e.args[2])
+    Meta.isexpr(e, :curly) && length(e.args) == 2 && e.args[1] == :Type &&
+        return extract_topmod(e.args[2])
     isa(e, Symbol) &&
         return e
     return :unknown
@@ -133,13 +135,7 @@ function parse_call(line; subst=Vector{Pair{String, String}}(), blacklist=String
         return false, line, :unknown
     end
 
-    argsidx = search(line, '(') + 1
-    if argsidx == 1 || !endswith(line, ")")
-        warn("unexpected characters at end of line: ", line)
-        return false, line, :unknown
-    end
-    line = "Tuple{$(line[argsidx:prevind(line, endof(line))])}"
-    curly = parse(line, raise=false)
+    curly = Meta.parse(line, raise = false)
     if !Meta.isexpr(curly, :curly)
         warn("failed parse of line: ", line)
         return false, line, :unknown

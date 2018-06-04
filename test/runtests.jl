@@ -29,7 +29,8 @@ end
 let func = (@eval Main module SnoopTestTemp
             func = () -> (y = 2; (x -> x > y))
         end).func
-    str = "getfield(SnoopTestTemp, Symbol(\"$(typeof(func()))\")), Array{Float32, 1}"
+
+    str = string("getfield", ", Array{Float32, 1}")
     keep, pcstring, topmod = SnoopCompile.parse_call("Foo.any($str)")
     @test keep
     @test pcstring == "Tuple{$str}"
